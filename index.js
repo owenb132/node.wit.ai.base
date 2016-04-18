@@ -1,67 +1,78 @@
-var express = require('express')
-var bodyParser = require('body-parser')
-var request = require('request')
-var app = express()
+var express = require('express');
+var bodyParser = require('body-parser');
+var request = require('request');
+var app = express();
 
-app.set('port', (process.env.PORT || 5000))
+// You MUST change these values, consult the Messenger Platform Getting Started guide
+var verify_token = 'superdupersecrettokenyay';
+var token = "CAAZADZCMHhz70BAIOwOOpG9GhKRmrjNhFiRIGpU4gMZATOVKrD0ZBqveklLaYmz0YVqhQxlgirgl7SjevwXWPGHwm53lyHniuvhiAcrhkTSMTT8DwBMynuD772Qox2jlsgUrOUetsAcIx1ktRpEmYmuTD0cmNdBysT4NN2bfOwfDUlQZCAI7R8Nzx4EbOucZByu0N1C8sSwAZDZD"
 
-// Process application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({extended: false}))
+app.use(bodyParser.json());
 
-// Process application/json
-app.use(bodyParser.json())
-
-// Index route
 app.get('/', function (req, res) {
-    res.send('Hello world, I am a chat bot')
-})
+
+    res.send('Hello World! This is the bot\'s root endpoint!');
+
+});
+
+app.get('/webhook/', function (req, res) {
+
+    if (req.query['hub.verify_token'] === verify_token) {
+        res.send(req.query['hub.challenge']);
+    }
+
+    res.send('Error, wrong validation token');
+
+});
 
 app.post('/webhook/', function (req, res) {
-    messaging_events = req.body.entry[0].messaging
-    for (i = 0; i < messaging_events.length; i++) {
-        event = req.body.entry[0].messaging[i]
-        sender = event.sender.id
+
+    var messaging_events = req.body.entry[0].messaging;
+
+    for (var i = 0; i < messaging_events.length; i++) {
+
+        var event = req.body.entry[0].messaging[i];
+        var sender = event.sender.id;
+
         if (event.message && event.message.text) {
-            text = event.message.text
-            sendTextMessage(sender, "Text received, echo: " + text.substring(0, 200))
+            var text = event.message.text;
+
+            sendTextMessage(sender, "Echo: " + text.substring(0, 200));
         }
     }
-    res.sendStatus(200)
-})
 
-var token = "<CAAZADZCMHhz70BAIOwOOpG9GhKRmrjNhFiRIGpU4gMZATOVKrD0ZBqveklLaYmz0YVqhQxlgirgl7SjevwXWPGHwm53lyHniuvhiAcrhkTSMTT8DwBMynuD772Qox2jlsgUrOUetsAcIx1ktRpEmYmuTD0cmNdBysT4NN2bfOwfDUlQZCAI7R8Nzx4EbOucZByu0N1C8sSwAZDZD>"
+    res.sendStatus(200);
+
+});
+
+app.listen(1337, function () {
+
+    console.log('Facebook Messenger echoing bot started on port 1337!');
+
+});
 
 function sendTextMessage(sender, text) {
-    messageData = {
-        text:text
-    }
+
+    var messageData = {
+        text: text
+    };
+
     request({
         url: 'https://graph.facebook.com/v2.6/me/messages',
-        qs: {access_token:token},
+        qs: {access_token: token},
         method: 'POST',
         json: {
-            recipient: {id:sender},
-            message: messageData,
+            recipient: {id: sender},
+            message: messageData
         }
-    }, function(error, response, body) {
+    }, function (error, response) {
+
         if (error) {
-            console.log('Error sending messages: ', error)
+            console.log('Error sending message: ', error);
         } else if (response.body.error) {
-            console.log('Error: ', response.body.error)
+            console.log('Error: ', response.body.error);
         }
-    })
+
+    });
+
 }
-
-
-// for Facebook verification
-app.get('/webhook/', function (req, res) {
-    if (req.query['hub.verify_token'] === 'my_voice_is_my_password_verify_me') {
-        res.send(req.query['hub.challenge'])
-    }
-    res.send('Error, wrong token')
-})
-
-// Spin up the server
-app.listen(app.get('port'), function() {
-    console.log('running on port', app.get('port'))
-})
